@@ -8,6 +8,40 @@ def test_version():
     import pytest_cache
     assert pytest_cache.__version__
 
+def test_cache_reportheader(testdir):
+    p = testdir.makepyfile("""
+        def test_hello():
+            pass
+    """)
+    cachedir = p.dirpath(".cache")
+    result = testdir.runpytest()
+    result.stdout.fnmatch_lines([
+        "cache base dir: %s" % cachedir,
+    ])
+
+def test_cache_show(testdir):
+    result = testdir.runpytest("--cache")
+    assert result.ret == 0
+    result.stdout.fnmatch_lines([
+        "*cache is empty*"
+    ])
+    p = testdir.makeconftest("""
+        def pytest_configure(config):
+            config.cache.set("my/name", [1,2,3])
+            config.cache.set("other/some", {1:2})
+    """)
+
+    result = testdir.runpytest()
+    assert result.ret == 0
+    result = testdir.runpytest("--cache")
+    result.stdout.fnmatch_lines([
+        "*cache base dir:*",
+        "*my/name contains:",
+        "  [1, 2, 3]",
+        "*other/some contains*",
+        "  {1: 2}",
+    ])
+
 
 class TestNewAPI:
     def test_config_cache_getpath(self, testdir):
@@ -49,6 +83,7 @@ class TestNewAPI:
         result.stdout.fnmatch_lines(["*1 passed*"])
 
 class TestLastFailed:
+    @pytest.mark.skipif("sys.version_info < (2,6)")
     def test_lastfailed_usecase(self, testdir, monkeypatch):
         monkeypatch.setenv("PYTHONDONTWRITEBYTECODE", 1)
         p = testdir.makepyfile("""
@@ -81,4 +116,3 @@ class TestLastFailed:
         result.stdout.fnmatch_lines([
             "*1 failed*2 passed*",
         ])
-
