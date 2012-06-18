@@ -29,6 +29,7 @@ def test_cache_show(testdir):
         def pytest_configure(config):
             config.cache.set("my/name", [1,2,3])
             config.cache.set("other/some", {1:2})
+            config.cache.getpath("my/data.db").write("hello")
     """)
 
     result = testdir.runpytest()
@@ -36,6 +37,7 @@ def test_cache_show(testdir):
     result = testdir.runpytest("--cache")
     result.stdout.fnmatch_lines([
         "*cache base dir:*",
+        "*my/data.db is a file of length*",
         "*my/name contains:",
         "  [1, 2, 3]",
         "*other/some contains*",
@@ -52,6 +54,14 @@ class TestNewAPI:
         p = config.cache.getpath("key/name")
         assert not p.check()
         assert p.dirpath().check()
+
+    def test_config_cache_dataerror(self, testdir):
+        testdir.makeini("[pytest]")
+        config = testdir.parseconfigure()
+        p = config.cache.getpath("key/name")
+        p.write("1p2o3i")
+        val = config.cache.get("key/name", -2)
+        assert val == -2
 
     def test_config_cache(self, testdir):
         testdir.makeconftest("""

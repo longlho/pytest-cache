@@ -1,11 +1,11 @@
-pytest plugin providing caching of values and files between test runs.
+pytest-cache: working with cross-testrun state
+=====================================================
 
 Usage
 ---------
 
 install via::
 
-    easy_install pytest-cache # or
     pip install pytest-cache
 
 after which other plugins can access a new `config.cache`_ object 
@@ -17,44 +17,158 @@ It also introduces a new option to rerun the last failing tests.
 The new --lf (rerun last failing) option
 ------------------------------------------
 
-The cache plugin introduces a new option to py.test which you 
-can enable by default if you like to usually re-run the tests
-that failed during the last run.  If no tests failed, passing 
-``--lf`` has no effect and will trigger running of all tests.
+The cache plugin introduces the ``--lf`` option to py.test which
+alows to rerun all test failures of a previous test run.  
+If not tests failed, all tests will be run as normal.  It is
+thus perfectly fine to always pass ``--lf``.
 
-Example::
+As an example, let's create 50 test invocation of which
+only 2 fail::
 
-    py.test --lf
+    # content of test_50.py
+    import pytest
 
+    @pytest.mark.parametrize("i", range(50))
+    def test_num(i):
+        if i in (17,25):
+           pytest.fail("bad luck") 
+
+If you run this for the first time you will see two failures::
+
+    $ py.test -q
+    collecting ... collected 50 items
+    .................F.......F........................
+    ================================= FAILURES =================================
+    _______________________________ test_num[17] _______________________________
+    
+    i = 17
+    
+        @pytest.mark.parametrize("i", range(50))
+        def test_num(i):
+            if i in (17,25):
+    >          pytest.fail("bad luck")
+    E          Failed: bad luck
+    
+    test_50.py:6: Failed
+    _______________________________ test_num[25] _______________________________
+    
+    i = 25
+    
+        @pytest.mark.parametrize("i", range(50))
+        def test_num(i):
+            if i in (17,25):
+    >          pytest.fail("bad luck")
+    E          Failed: bad luck
+    
+    test_50.py:6: Failed
+    2 failed, 48 passed in 0.06 seconds
+
+If you then run it with ``--lf`` you will re-run the last two failures::
+
+    $ py.test -q --lf
+    collecting ... collected 50 items
+    FF
+    ================================= FAILURES =================================
+    _______________________________ test_num[17] _______________________________
+    
+    i = 17
+    
+        @pytest.mark.parametrize("i", range(50))
+        def test_num(i):
+            if i in (17,25):
+    >          pytest.fail("bad luck")
+    E          Failed: bad luck
+    
+    test_50.py:6: Failed
+    _______________________________ test_num[25] _______________________________
+    
+    i = 25
+    
+        @pytest.mark.parametrize("i", range(50))
+        def test_num(i):
+            if i in (17,25):
+    >          pytest.fail("bad luck")
+    E          Failed: bad luck
+    
+    test_50.py:6: Failed
+    2 failed, 48 deselected in 0.01 seconds
+
+The last line indicates that 48 tests have not been run.
 
 .. _`config.cache`:
 
 The new config.cache object
 --------------------------------
 
+.. regendoc:wipe
+
 Plugins or conftest.py support code can get a cached value 
-using the pytest ``config`` object which is available in
-many places::
+using the pytest ``config`` object.  Here is a basic example
+plugin which implements a funcarg that re-uses previously
+created state across py.test invocations::
 
-    config.cache.get(key="myapp/somevalue", default=[1])
+    # content of test_caching.py
+    import time
 
-The key must be a ``/`` separated value. Usually the first
-name is the name of your plugin or your application.  The
-``somevalue`` part is a name that identifies a particular
-value.  You must provide a default value which will be returned 
-if no previous value was stored.  Values can be of any basic
-python type, including nested types like e. g. lists of dictionaries.
+    def pytest_funcarg__mydata(request):
+        val = request.config.cache.get("example/value", None)
+        if val is None:
+            time.sleep(9*0.6) # expensive computation :)
+            val = 42
+            request.config.cache.set("example/value", val)
+        return val 
 
-You can set a new value for a cache entry like this::
+    def test_function(mydata):
+        assert mydata == 23
 
-    config.cache.set(key="myapp/somevalue", value=[1,2,3])
+If you run this command once, it will take a while because
+of the sleep::
 
-Note that when you store string values under a Python2 interpreter
-they will be loaded as Python3 bytes.  If you store Python3
-strings, they will be loaded as Python2 unicode objects.
-IOW, if you are dealing with text make sure you use unicode 
-on Python2 and things will be fine with your cache keys.
- 
+    $ py.test -q
+    collecting ... collected 1 items
+    F
+    ================================= FAILURES =================================
+    ______________________________ test_function _______________________________
+    
+    mydata = 42
+    
+        def test_function(mydata):
+    >       assert mydata == 23
+    E       assert 42 == 23
+    
+    test_caching.py:12: AssertionError
+    1 failed in 5.43 seconds
+
+If you run it a second time, however, it will be quick::
+
+    $ py.test -q
+    collecting ... collected 1 items
+    F
+    ================================= FAILURES =================================
+    ______________________________ test_function _______________________________
+    
+    mydata = 42
+    
+        def test_function(mydata):
+    >       assert mydata == 23
+    E       assert 42 == 23
+    
+    test_caching.py:12: AssertionError
+    1 failed in 0.02 seconds
+
+You can peek at the content of the cache using the
+``--lf`` command line option::
+
+    $ py.test --cache
+    =========================== test session starts ============================
+    platform linux2 -- Python 2.7.3 -- pytest-2.2.5.dev3
+    cache base dir: /home/hpk/tmp/doc-exec-246/.cache
+    
+    =============================  in 0.01 seconds =============================
+    cache/lastfailed contains:
+      set(['test_caching.py::test_function'])
+    example/value contains:
+      42
 
 Notes
 -------------

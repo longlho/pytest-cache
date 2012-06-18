@@ -2,7 +2,7 @@ import py
 import pytest
 
 __version__ = '0.9'
-
+VALEXT = ".py23"
 
 def pytest_addoption(parser):
     group = parser.getgroup("general")
@@ -30,15 +30,6 @@ class Cache:
         self._cachedir = getrootdir(config, ".cache")
         self.trace = config.trace.root.get("cache")
 
-    def iteritems(self):
-        dummy = object()
-        for sub in self._cachedir.listdir(lambda x: x.check(dir=1)):
-            for valname in sub.listdir():
-                key = valname.relto(self._cachedir)
-                val = self.get(key, dummy)
-                if val is not dummy:
-                    yield (key, val)
-
     def getpath(self, key):
         """ get a filesystem path for the given key. There is no
         guarantee that the file exists. Missing intermediate
@@ -50,21 +41,44 @@ class Cache:
         p.dirpath().ensure(dir=1)
         return p
 
+    def _getvaluepath(self, key):
+        return self.getpath(key + VALEXT)
+
     def get(self, key, default):
-        from execnet import loads
-        path = self.getpath(key)
+        """ return cached value for the given key.  If no value
+        was yet cached or the value cannot be read, the specified
+        default is returned.
+
+        :param key: must be a ``/`` separated value. Usually the first
+             name is the name of your plugin or your application.
+        :param default: must be provided in case of a cache-miss or
+             invalid cache values.
+
+        """
+        from execnet import loads, DataFormatError
+        path = self._getvaluepath(key)
         if path.check():
             f = path.open("rb")
             try:
-                return loads(f.read())
-            finally:
-                f.close()
-        else:
-            return default
+                try:
+                    return loads(f.read())
+                finally:
+                    f.close()
+            except DataFormatError:
+                self.trace("cache-invalid at %s" % (key,))
+        return default
 
     def set(self, key, value):
+        """ save value for the given key.
+
+        :param key: must be a ``/`` separated value. Usually the first
+             name is the name of your plugin or your application.
+        :param value: must be of any combination of basic
+               python types, including nested types
+               like e. g. lists of dictionaries.
+        """
         from execnet import dumps
-        path = self.getpath(key)
+        path = self._getvaluepath(key)
         f = path.open("wb")
         try:
             self.trace("cache-write %s: %r" % (key, value,))
@@ -117,12 +131,25 @@ def _showcache(config, session):
     if not config.cache._cachedir.check():
         print("cache is empty")
         return 0
-    for (name, val) in config.cache.iteritems():
-        print("%s contains:" % name)
-        stream = py.io.TextIO()
-        pprint(val, stream=stream)
-        for line in stream.getvalue().splitlines():
-            print("  " + line)
+    dummy = object()
+    basedir = config.cache._cachedir
+    for valpath in basedir.visit(lambda x: x.check(file=1)):
+        if valpath.ext == VALEXT:
+            key = valpath.relto(basedir)[:-len(VALEXT)]
+            val = config.cache.get(key, dummy)
+            if val is dummy:
+                print("%s contains unreadable content, "
+                      "will be ignored" % key)
+            else:
+                print("%s contains:" % key)
+                stream = py.io.TextIO()
+                pprint(val, stream=stream)
+                for line in stream.getvalue().splitlines():
+                    print("  " + line)
+        else:
+            key = valpath.relto(basedir)
+            print("%s is a file of length %d" % (
+                  key, valpath.size()))
 
 
 ### XXX consider shifting part of the below to pytest config object
