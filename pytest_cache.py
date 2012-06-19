@@ -136,11 +136,21 @@ class LFPlugin:
 
     def pytest_sessionfinish(self):
         config = self.config
+        if config.getvalue("showcache"):
+            return
         terminal = config.pluginmanager.getplugin("terminalreporter")
         stats = terminal.stats
-        failedreports = stats.get("failed", [])
-        ids = set([x.nodeid for x in failedreports])
-        config.cache.set("cache/lastfailed", ids)
+        if getattr(self, "lastfailed", False):
+            for x in stats.get("passed", []):
+                try:
+                    self.lastfailed.remove(x.nodeid)
+                except KeyError:
+                    pass
+        else:
+            self.lastfailed = set([x.nodeid
+                                   for x in stats.get("failed", [])])
+        config.cache.set("cache/lastfailed", self.lastfailed)
+
 
 def showcache(config):
     from _pytest.main import wrap_session

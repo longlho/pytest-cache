@@ -136,7 +136,6 @@ class TestLastFailed:
             "*1 failed*2 passed*",
         ])
 
-    @pytest.mark.xfail(reason="not implemented")
     @pytest.mark.skipif("sys.version_info < (2,6)")
     def test_lastfailed_usecase_splice(self, testdir, monkeypatch):
         monkeypatch.setenv("PYTHONDONTWRITEBYTECODE", 1)
