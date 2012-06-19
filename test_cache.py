@@ -135,3 +135,29 @@ class TestLastFailed:
         result.stdout.fnmatch_lines([
             "*1 failed*2 passed*",
         ])
+
+    @pytest.mark.xfail(reason="not implemented")
+    @pytest.mark.skipif("sys.version_info < (2,6)")
+    def test_lastfailed_usecase_splice(self, testdir, monkeypatch):
+        monkeypatch.setenv("PYTHONDONTWRITEBYTECODE", 1)
+        p1 = testdir.makepyfile("""
+            def test_1():
+                assert 0
+        """)
+        p2 = testdir.tmpdir.join("test_something.py")
+        p2.write(py.code.Source("""
+            def test_2():
+                assert 0
+        """))
+        result = testdir.runpytest()
+        result.stdout.fnmatch_lines([
+            "*2 failed*",
+        ])
+        result = testdir.runpytest("--lf", p2)
+        result.stdout.fnmatch_lines([
+            "*1 failed*",
+        ])
+        result = testdir.runpytest("--lf")
+        result.stdout.fnmatch_lines([
+            "*2 failed*",
+        ])
