@@ -29,36 +29,42 @@ def test_cache_show(testdir):
         def pytest_configure(config):
             config.cache.set("my/name", [1,2,3])
             config.cache.set("other/some", {1:2})
-            config.cache.getpath("my/data.db").write("hello")
+            dp = config.cache.makedir("mydb")
+            dp.ensure("hello")
+            dp.ensure("world")
     """)
     result = testdir.runpytest()
     assert result.ret == 0
     result = testdir.runpytest("--cache")
     result.stdout.fnmatch_lines([
         "*cache base dir:*",
-        "*my/data.db is a file of length*",
+        "-*cache values*-",
         "*my/name contains:",
         "  [1, 2, 3]",
         "*other/some contains*",
         "  {1: 2}",
+        "-*cache directories*-",
+        "*mydb/hello*length 0*",
+        "*mydb/world*length 0*",
     ])
 
 
 class TestNewAPI:
-    def test_config_cache_getpath(self, testdir):
+    def test_config_cache_makedir(self, testdir):
         testdir.makeini("[pytest]")
         config = testdir.parseconfigure()
-        pytest.raises(KeyError, lambda:
-            config.cache.getpath("abc"))
-        p = config.cache.getpath("key/name")
-        assert not p.check()
-        assert p.dirpath().check()
+        pytest.raises(ValueError, lambda:
+            config.cache.makedir("key/name"))
+        p = config.cache.makedir("name")
+        assert p.check()
 
     def test_config_cache_dataerror(self, testdir):
         testdir.makeini("[pytest]")
         config = testdir.parseconfigure()
-        p = config.cache.getpath("key/name")
-        p.write("1p2o3i")
+        cache = config.cache
+        pytest.raises(ValueError, lambda: cache.set("key/name", cache))
+        config.cache.set("key/name", 0)
+        config.cache._getvaluepath("key/name").write("123")
         val = config.cache.get("key/name", -2)
         assert val == -2
 

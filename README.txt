@@ -106,8 +106,8 @@ The new config.cache object
 
 Plugins or conftest.py support code can get a cached value 
 using the pytest ``config`` object.  Here is a basic example
-plugin which implements a funcarg that re-uses previously
-created state across py.test invocations::
+plugin which implements a `funcarg <http://pytest.org/latest/funcargs.html>`_
+which re-uses previously created state across py.test invocations::
 
     # content of test_caching.py
     import time
@@ -141,7 +141,8 @@ of the sleep::
     test_caching.py:12: AssertionError
     1 failed in 5.43 seconds
 
-If you run it a second time, however, it will be quick::
+If you run it a second time the value will be retrieved from
+the cache and this will be quick::
 
     $ py.test -q
     collecting ... collected 1 items
@@ -158,8 +159,15 @@ If you run it a second time, however, it will be quick::
     test_caching.py:12: AssertionError
     1 failed in 0.02 seconds
 
-You can peek at the content of the cache using the
-``--lf`` command line option::
+Consult the `pytest-cache API <http://packages.python.org/pytest-cache/api.html>`_
+for more details.
+
+
+Inspecting Cache content
+-------------------------------
+
+You can always peek at the content of the cache using the
+``--cache`` command line option::
 
     $ py.test --cache
     =========================== test session starts ============================

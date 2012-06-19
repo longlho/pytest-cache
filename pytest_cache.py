@@ -2,7 +2,6 @@ import py
 import pytest
 
 __version__ = '0.9'
-VALEXT = ".py23"
 
 def pytest_addoption(parser):
     group = parser.getgroup("general")
@@ -36,19 +35,31 @@ class Cache:
             self._cachedir.remove()
             self._cachedir.mkdir()
 
-    def getpath(self, key):
-        """ get a filesystem path for the given key. There is no
-        guarantee that the file exists. Missing intermediate
-        directories will be created, however.
+    def makedir(self, name):
+        """ return a directory path object with the given name.  If the
+        directory does not yet exist, it will be created.  You can use it
+        to manage files likes e. g. store/retrieve database
+        dumps across test sessions.
+
+        :param name: must be a string not containing a ``/`` separator.
+             Make sure the name contains your plugin or application
+             identifiers to prevent clashes with other cache users.
         """
-        if not key.count("/") > 0:
-            raise KeyError("Key must be of format 'dir/.../subname")
-        p = self._cachedir.join(key)
-        p.dirpath().ensure(dir=1)
+        if name.count("/") != 0:
+            raise ValueError("name is not allowed to contain '/'")
+        p = self._cachedir.join("d/" + name)
+        p.ensure(dir=1)
         return p
 
+    def _getpath(self, key):
+        if not key.count("/") > 1:
+            raise KeyError("Key must be of format 'dir/.../subname")
+        return self._cachedir.join(key)
+
     def _getvaluepath(self, key):
-        return self.getpath(key + VALEXT)
+        p = self._getpath("v/" + key)
+        p.dirpath().ensure(dir=1)
+        return p
 
     def get(self, key, default):
         """ return cached value for the given key.  If no value
@@ -83,14 +94,17 @@ class Cache:
                python types, including nested types
                like e. g. lists of dictionaries.
         """
-        from execnet import dumps
+        from execnet import dumps, DataFormatError
         path = self._getvaluepath(key)
         f = path.open("wb")
         try:
-            self.trace("cache-write %s: %r" % (key, value,))
-            return f.write(dumps(value))
-        finally:
-            f.close()
+            try:
+                self.trace("cache-write %s: %r" % (key, value,))
+                return f.write(dumps(value))
+            finally:
+                f.close()
+        except DataFormatError:
+            raise ValueError("cannot serialize a builtin python type")
 
 
 class LFPlugin:
@@ -137,25 +151,34 @@ def _showcache(config, session):
     if not config.cache._cachedir.check():
         print("cache is empty")
         return 0
+    tw = py.io.TerminalWriter()
     dummy = object()
     basedir = config.cache._cachedir
-    for valpath in basedir.visit(lambda x: x.check(file=1)):
-        if valpath.ext == VALEXT:
-            key = valpath.relto(basedir)[:-len(VALEXT)]
-            val = config.cache.get(key, dummy)
-            if val is dummy:
-                print("%s contains unreadable content, "
-                      "will be ignored" % key)
-            else:
-                print("%s contains:" % key)
-                stream = py.io.TextIO()
-                pprint(val, stream=stream)
-                for line in stream.getvalue().splitlines():
-                    print("  " + line)
+    vdir = basedir.join("v")
+    tw.sep("-", "cache values")
+    for valpath in vdir.visit(lambda x: x.check(file=1)):
+        key = valpath.relto(vdir)
+        val = config.cache.get(key, dummy)
+        if val is dummy:
+            tw.line("%s contains unreadable content, "
+                  "will be ignored" % key)
         else:
-            key = valpath.relto(basedir)
-            print("%s is a file of length %d" % (
-                  key, valpath.size()))
+            tw.line("%s contains:" % key)
+            stream = py.io.TextIO()
+            pprint(val, stream=stream)
+            for line in stream.getvalue().splitlines():
+                tw.line("  " + line)
+
+    ddir = basedir.join("d")
+    if ddir.check(dir=1) and ddir.listdir():
+        tw.sep("-", "cache directories")
+        for p in basedir.join("d").visit():
+            #if p.check(dir=1):
+            #    print("%s/" % p.relto(basedir))
+            if p.check(file=1):
+                key = p.relto(basedir)
+                tw.line("%s is a file of length %d" % (
+                        key, p.size()))
 
 
 ### XXX consider shifting part of the below to pytest config object
