@@ -31,7 +31,6 @@ def test_cache_show(testdir):
             config.cache.set("other/some", {1:2})
             config.cache.getpath("my/data.db").write("hello")
     """)
-
     result = testdir.runpytest()
     assert result.ret == 0
     result = testdir.runpytest("--cache")
@@ -123,6 +122,10 @@ class TestLastFailed:
             "*2 passed*1 desel*",
         ])
         result = testdir.runpytest("--lf")
+        result.stdout.fnmatch_lines([
+            "*1 failed*2 passed*",
+        ])
+        result = testdir.runpytest("--lf", "--rmcache")
         result.stdout.fnmatch_lines([
             "*1 failed*2 passed*",
         ])

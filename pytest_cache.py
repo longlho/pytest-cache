@@ -10,6 +10,8 @@ def pytest_addoption(parser):
         help="rerun tests that failed at the last run")
     group.addoption('--cache', action='store_true', dest="showcache",
         help="show cache contents, don't perform collection or tests")
+    group.addoption('--rmcache', action='store_true', dest="rmcache",
+        help="remove all cache contents at start of test run.")
 
 def pytest_cmdline_main(config):
     if config.option.showcache:
@@ -29,6 +31,10 @@ class Cache:
         self.config = config
         self._cachedir = getrootdir(config, ".cache")
         self.trace = config.trace.root.get("cache")
+        if config.getvalue("rmcache"):
+            self.trace("clearing cachedir")
+            self._cachedir.remove()
+            self._cachedir.mkdir()
 
     def getpath(self, key):
         """ get a filesystem path for the given key. There is no
