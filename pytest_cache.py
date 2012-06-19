@@ -112,7 +112,9 @@ class LFPlugin:
     def __init__(self, config):
         self.config = config
         if config.getvalue("lf"):
-            self.lastfailed = self.config.cache.get("cache/lastfailed", set())
+            self.lastfailed = config.cache.get("cache/lastfailed", set())
+        else:
+            self.lastfailed = set()
 
     def pytest_report_header(self):
         if self.config.getvalue("lf"):
@@ -121,6 +123,16 @@ class LFPlugin:
             else:
                 mode = "rerun last %d failures" % len(self.lastfailed)
             return "run-last-failure: %s" % mode
+
+    def pytest_runtest_logreport(self, report):
+        if report.failed:
+            self.lastfailed.add(report.nodeid)
+        else:
+            if report.when == "call":
+                try:
+                    self.lastfailed.remove(report.nodeid)
+                except KeyError:
+                    pass
 
     def pytest_collection_modifyitems(self, session, config, items):
         if self.config.getvalue("lf") and self.lastfailed:
@@ -134,21 +146,10 @@ class LFPlugin:
             items[:] = newitems
             config.hook.pytest_deselected(items=deselected)
 
-    def pytest_sessionfinish(self):
+    def pytest_sessionfinish(self, session):
         config = self.config
-        if config.getvalue("showcache"):
+        if config.getvalue("showcache") or hasattr(config, "slaveinput"):
             return
-        terminal = config.pluginmanager.getplugin("terminalreporter")
-        stats = terminal.stats
-        if getattr(self, "lastfailed", False):
-            for x in stats.get("passed", []):
-                try:
-                    self.lastfailed.remove(x.nodeid)
-                except KeyError:
-                    pass
-        else:
-            self.lastfailed = set([x.nodeid
-                                   for x in stats.get("failed", [])])
         config.cache.set("cache/lastfailed", self.lastfailed)
 
 
