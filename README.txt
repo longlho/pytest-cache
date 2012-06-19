@@ -93,6 +93,7 @@ If you then run it with ``--lf`` you will re-run the last two failures::
     E          Failed: bad luck
     
     test_50.py:6: Failed
+    ======================== 48 tests deselected by '' =========================
     2 failed, 48 deselected in 0.01 seconds
 
 The last line indicates that 48 tests have not been run.
@@ -171,16 +172,17 @@ You can always peek at the content of the cache using the
 
     $ py.test --cache
     =========================== test session starts ============================
-    platform linux2 -- Python 2.7.3 -- pytest-2.2.5.dev3
-    cache base dir: /home/hpk/tmp/doc-exec-246/.cache
-    
-    =============================  in 0.01 seconds =============================
+    platform linux2 -- Python 2.7.3 -- pytest-2.2.5.dev2
+    cachedir: /home/hpk/tmp/doc-exec-257/.cache
+    ------------------------------- cache values -------------------------------
     cache/lastfailed contains:
       set(['test_caching.py::test_function'])
     example/value contains:
       42
+    
+    =============================  in 0.01 seconds =============================
 
-Removing Cache content
+Clearing Cache content
 -------------------------------
 
 You can instruct pytest to clear all cache files and values 
