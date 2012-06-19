@@ -12,7 +12,7 @@ after which other plugins can access a new `config.cache`_ object
 which helps sharing values between ``py.test`` invocations.
 
 The plugin also introduces a new ``--lf`` option to rerun the 
-last failing tests and a ``--rmcache`` option to remove 
+last failing tests and a ``--clearcache`` option to remove 
 cache contents ahead of a test run.
 
 
@@ -184,9 +184,9 @@ Removing Cache content
 -------------------------------
 
 You can instruct pytest to clear all cache files and values 
-by adding the ``--rmcache`` option::
+by adding the ``--clearcache`` option like this::
 
-    py.test --rmcache
+    py.test --clearcache
 
 This is recommended for invocations from Continous Integration
 servers where isolation and correctness is more important

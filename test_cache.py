@@ -14,9 +14,9 @@ def test_cache_reportheader(testdir):
             pass
     """)
     cachedir = p.dirpath(".cache")
-    result = testdir.runpytest()
+    result = testdir.runpytest("-v")
     result.stdout.fnmatch_lines([
-        "cache base dir: %s" % cachedir,
+        "cachedir: %s" % cachedir,
     ])
 
 def test_cache_show(testdir):
@@ -37,7 +37,7 @@ def test_cache_show(testdir):
     assert result.ret == 0
     result = testdir.runpytest("--cache")
     result.stdout.fnmatch_lines([
-        "*cache base dir:*",
+        "*cachedir:*",
         "-*cache values*-",
         "*my/name contains:",
         "  [1, 2, 3]",
@@ -131,7 +131,7 @@ class TestLastFailed:
         result.stdout.fnmatch_lines([
             "*1 failed*2 passed*",
         ])
-        result = testdir.runpytest("--lf", "--rmcache")
+        result = testdir.runpytest("--lf", "--clearcache")
         result.stdout.fnmatch_lines([
             "*1 failed*2 passed*",
         ])

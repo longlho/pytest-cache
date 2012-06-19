@@ -9,12 +9,13 @@ def pytest_addoption(parser):
         help="rerun tests that failed at the last run")
     group.addoption('--cache', action='store_true', dest="showcache",
         help="show cache contents, don't perform collection or tests")
-    group.addoption('--rmcache', action='store_true', dest="rmcache",
+    group.addoption('--clearcache', action='store_true', dest="clearcache",
         help="remove all cache contents at start of test run.")
 
 def pytest_cmdline_main(config):
     if config.option.showcache:
-        return showcache(config)
+        from _pytest.main import wrap_session
+        return wrap_session(config, showcache)
 
 @pytest.mark.tryfirst
 def pytest_configure(config):
@@ -22,15 +23,16 @@ def pytest_configure(config):
     config.pluginmanager.register(LFPlugin(config), "lfplugin")
 
 def pytest_report_header(config):
-    relpath = py.path.local().bestrelpath(config.cache._cachedir)
-    return "cache base dir: %s" % config.cache._cachedir
+    if config.option.verbose:
+        relpath = py.path.local().bestrelpath(config.cache._cachedir)
+        return "cachedir: %s" % config.cache._cachedir
 
 class Cache:
     def __init__(self, config):
         self.config = config
         self._cachedir = getrootdir(config, ".cache")
         self.trace = config.trace.root.get("cache")
-        if config.getvalue("rmcache"):
+        if config.getvalue("clearcache"):
             self.trace("clearing cachedir")
             self._cachedir.remove()
             self._cachedir.mkdir()
@@ -153,16 +155,13 @@ class LFPlugin:
         config.cache.set("cache/lastfailed", self.lastfailed)
 
 
-def showcache(config):
-    from _pytest.main import wrap_session
-    return wrap_session(config, _showcache)
-
-def _showcache(config, session):
+def showcache(config, session):
     from pprint import pprint
-    if not config.cache._cachedir.check():
-        print("cache is empty")
-        return 0
     tw = py.io.TerminalWriter()
+    tw.line("cachedir: " + str(config.cache._cachedir))
+    if not config.cache._cachedir.check():
+        tw.line("cache is empty")
+        return 0
     dummy = object()
     basedir = config.cache._cachedir
     vdir = basedir.join("v")
