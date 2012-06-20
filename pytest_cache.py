@@ -127,9 +127,9 @@ class LFPlugin:
             return "run-last-failure: %s" % mode
 
     def pytest_runtest_logreport(self, report):
-        if report.failed:
+        if report.failed and "xfail" not in report.keywords:
             self.lastfailed.add(report.nodeid)
-        else:
+        elif not report.failed:
             if report.when == "call":
                 try:
                     self.lastfailed.remove(report.nodeid)

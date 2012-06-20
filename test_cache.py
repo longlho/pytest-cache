@@ -160,3 +160,14 @@ class TestLastFailed:
         result.stdout.fnmatch_lines([
             "*2 failed*",
         ])
+
+    def test_lastfailed_xpass(self, testdir):
+        rep = testdir.inline_runsource1("""
+            import pytest
+            @pytest.mark.xfail
+            def test_hello():
+                assert 1
+        """)
+        config = testdir.parseconfigure()
+        lastfailed = config.cache.get("cache/lastfailed", -1)
+        assert not lastfailed
