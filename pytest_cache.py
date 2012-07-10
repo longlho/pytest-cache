@@ -133,10 +133,7 @@ class LFPlugin:
             call = report.when == "call"
             skipped_setup = report.when == 'setup' and report.skipped
             if call or skipped_setup:
-                try:
-                    self.lastfailed.remove(report.nodeid)
-                except KeyError:
-                    pass
+                self.lastfailed.discard(report.nodeid)
 
     def pytest_collection_modifyitems(self, session, config, items):
         if self.config.getvalue("lf") and self.lastfailed:
