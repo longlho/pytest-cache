@@ -160,3 +160,68 @@ class TestLastFailed:
         result.stdout.fnmatch_lines([
             "*2 failed*",
         ])
+
+    @pytest.mark.skipif("sys.version_info < (2,6)")
+    def test_lastfailed_failure_to_skip_is_passsed(self, testdir, monkeypatch):
+        monkeypatch.setenv("PYTHONDONTWRITEBYTECODE", 1)
+        p1 = testdir.makepyfile("""
+            import os
+            import pytest
+            def skipat(when):
+                if os.environ.get("SKIPAT") == when:
+                    pytest.skip(when)
+
+            def setup_module(mod):
+                skipat('setup')
+
+            def test_configured_skip():
+                skipat('test')
+                assert 0
+        """)
+        p2 = testdir.tmpdir.join('test_fail.py').write(py.code.Source("""
+            def test_keepfail():
+                assert 0
+        """))
+
+        result = testdir.runpytest("--lf")
+        result.stdout.fnmatch_lines([
+            "*2 failed*",
+        ])
+
+        monkeypatch.setenv("SKIPAT", 'test')
+
+        result = testdir.runpytest("--lf")
+        result.stdout.fnmatch_lines([
+            "*1 skipped*",
+        ])
+
+        result = testdir.runpytest("--lf")
+        result.stdout.fnmatch_lines([
+            "*1 deselected*",
+        ])
+
+        monkeypatch.delenv('SKIPAT')
+        
+        result = testdir.runpytest()
+        result.stdout.fnmatch_lines([
+            "*2 failed*",
+        ])
+        
+        monkeypatch.setenv("SKIPAT", 'setup')
+        
+        result = testdir.runpytest("--lf")
+        result.stdout.fnmatch_lines([
+            "*1 skipped*",
+        ])
+        #XXX: check cache
+        result = testdir.runpytest("--lf")
+        result.stdout.fnmatch_lines([
+            "*1 deselected*",
+        ])
+
+        monkeypatch.delenv('SKIPAT')
+        
+        result = testdir.runpytest("--lf")
+        result.stdout.fnmatch_lines([
+            "*1 failed*",
+        ])

@@ -130,7 +130,9 @@ class LFPlugin:
         if report.failed:
             self.lastfailed.add(report.nodeid)
         else:
-            if report.when == "call":
+            call = report.when == "call"
+            skipped_setup = report.when == 'setup' and report.skipped
+            if call or skipped_setup:
                 try:
                     self.lastfailed.remove(report.nodeid)
                 except KeyError:
