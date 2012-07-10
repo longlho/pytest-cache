@@ -165,7 +165,7 @@ def showcache(config, session):
     basedir = config.cache._cachedir
     vdir = basedir.join("v")
     tw.sep("-", "cache values")
-    for valpath in vdir.visit(lambda x: x.check(file=1)):
+    for valpath in vdir.visit(lambda x: x.check(file=1), sort=True):
         key = valpath.relto(vdir)
         val = config.cache.get(key, dummy)
         if val is dummy:
@@ -179,9 +179,9 @@ def showcache(config, session):
                 tw.line("  " + line)
 
     ddir = basedir.join("d")
-    if ddir.check(dir=1) and ddir.listdir():
+    if ddir.check(dir=1) and ddir.listdir(sort=True):
         tw.sep("-", "cache directories")
-        for p in basedir.join("d").visit():
+        for p in basedir.join("d").visit(sort=True):
             #if p.check(dir=1):
             #    print("%s/" % p.relto(basedir))
             if p.check(file=1):
