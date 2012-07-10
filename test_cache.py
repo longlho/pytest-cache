@@ -201,14 +201,14 @@ class TestLastFailed:
         ])
 
         monkeypatch.delenv('SKIPAT')
-        
+
         result = testdir.runpytest()
         result.stdout.fnmatch_lines([
             "*2 failed*",
         ])
-        
+
         monkeypatch.setenv("SKIPAT", 'setup')
-        
+
         result = testdir.runpytest("--lf")
         result.stdout.fnmatch_lines([
             "*1 skipped*",
@@ -220,7 +220,7 @@ class TestLastFailed:
         ])
 
         monkeypatch.delenv('SKIPAT')
-        
+
         result = testdir.runpytest("--lf")
         result.stdout.fnmatch_lines([
             "*1 failed*",
