@@ -21,8 +21,8 @@ The new --lf (rerun last failing) option
 
 The cache plugin introduces the ``--lf`` option to py.test which
 alows to rerun all test failures of a previous test run.  
-If not tests failed, all tests will be run as normal.  It is
-thus perfectly fine to always pass ``--lf``.
+If no tests failed previously, all tests will be run as normal.  
+It is thus usually fine to always pass ``--lf``.
 
 As an example, let's create 50 test invocation of which
 only 2 fail::

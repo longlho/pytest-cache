@@ -36,7 +36,7 @@ def test_cache_show(testdir):
     result = testdir.runpytest()
     assert result.ret == 0
     result = testdir.runpytest("--cache")
-    result.stdout.fnmatch_lines([
+    result.stdout.fnmatch_lines_random([
         "*cachedir:*",
         "-*cache values*-",
         "*my/name contains:",
@@ -134,6 +134,42 @@ class TestLastFailed:
         result = testdir.runpytest("--lf", "--clearcache")
         result.stdout.fnmatch_lines([
             "*1 failed*2 passed*",
+        ])
+
+    @pytest.mark.skipif("sys.version_info < (2,6)")
+    def test_lastfailed_difference_invocations(self, testdir, monkeypatch):
+        monkeypatch.setenv("PYTHONDONTWRITEBYTECODE", 1)
+        testdir.makepyfile(test_a="""
+            def test_a1():
+                assert 0
+            def test_a2():
+                assert 1
+        """, test_b="""
+            def test_b1():
+                assert 0
+        """)
+        p = testdir.tmpdir.join("test_a.py")
+        p2 = testdir.tmpdir.join("test_b.py")
+
+        result = testdir.runpytest()
+        result.stdout.fnmatch_lines([
+            "*2 failed*",
+        ])
+        result = testdir.runpytest("--lf", p2)
+        result.stdout.fnmatch_lines([
+            "*1 failed*",
+        ])
+        p2.write(py.code.Source("""
+            def test_b1():
+                assert 1
+        """))
+        result = testdir.runpytest("--lf", p2)
+        result.stdout.fnmatch_lines([
+            "*1 passed*",
+        ])
+        result = testdir.runpytest("--lf", p)
+        result.stdout.fnmatch_lines([
+            "*1 failed*1 desel*",
         ])
 
     @pytest.mark.skipif("sys.version_info < (2,6)")
