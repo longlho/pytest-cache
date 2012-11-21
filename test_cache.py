@@ -161,6 +161,28 @@ class TestLastFailed:
             "*2 failed*",
         ])
 
+    def test_lastfailed_order(self, testdir):
+        always_pass = testdir.tmpdir.join('test_a.py').write(py.code.Source("""
+            def test_always_passes():
+                assert 1
+        """))
+        always_fail = testdir.tmpdir.join('test_b.py').write(py.code.Source("""
+            def test_always_fails():
+                assert 0
+        """))
+        result = testdir.runpytest()
+        # Test order will be collection order; alphabetical
+        result.stdout.fnmatch_lines([
+            "test_a.py*",
+            "test_b.py*",
+        ])
+        result = testdir.runpytest("--lf", "--failedfirst")
+        # Test order will be failing tests firs
+        result.stdout.fnmatch_lines([
+            "test_b.py*",
+            "test_a.py*",
+        ])
+
     @pytest.mark.skipif("sys.version_info < (2,6)")
     def test_lastfailed_failure_to_skip_is_passsed(self, testdir, monkeypatch):
         monkeypatch.setenv("PYTHONDONTWRITEBYTECODE", 1)

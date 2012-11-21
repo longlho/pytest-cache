@@ -7,12 +7,16 @@ def pytest_addoption(parser):
     group = parser.getgroup("general")
     group.addoption('--lf', action='store_true', dest="lf",
         help="rerun tests that failed at the last run")
+    group.addoption('--failedfirst', action='store_true', dest="failedfirst",
+        help="run tests that failed at the last run at the start of this run")
     group.addoption('--cache', action='store_true', dest="showcache",
         help="show cache contents, don't perform collection or tests")
     group.addoption('--clearcache', action='store_true', dest="clearcache",
         help="remove all cache contents at start of test run.")
 
 def pytest_cmdline_main(config):
+    if config.option.failedfirst and not config.option.lf:
+        raise pytest.UsageError("--failedfirst must be used with --lf")
     if config.option.showcache:
         from _pytest.main import wrap_session
         return wrap_session(config, showcache)
@@ -123,7 +127,9 @@ class LFPlugin:
             if not self.lastfailed:
                 mode = "run all (no recorded failures)"
             else:
-                mode = "rerun last %d failures" % len(self.lastfailed)
+                mode = "rerun last %d failures%s" % (
+                    len(self.lastfailed),
+                    " first" if self.config.getvalue("failedfirst") else "")
             return "run-last-failure: %s" % mode
 
     def pytest_runtest_logreport(self, report):
@@ -137,15 +143,18 @@ class LFPlugin:
 
     def pytest_collection_modifyitems(self, session, config, items):
         if self.config.getvalue("lf") and self.lastfailed:
-            newitems = []
-            deselected = []
+            previously_failed = []
+            previously_passed = []
             for item in items:
                 if item.nodeid in self.lastfailed:
-                    newitems.append(item)
+                    previously_failed.append(item)
                 else:
-                    deselected.append(item)
-            items[:] = newitems
-            config.hook.pytest_deselected(items=deselected)
+                    previously_passed.append(item)
+            if self.config.getvalue("failedfirst"):
+                items[:] = previously_failed + previously_passed
+            else:
+                items[:] = previously_failed
+                config.hook.pytest_deselected(items=previously_failed)
 
     def pytest_sessionfinish(self, session):
         config = self.config
