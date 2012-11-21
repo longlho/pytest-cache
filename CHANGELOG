@@ -1,10 +1,10 @@
+1.0.dev
+----------------------------------------------
 
 - fix issue 4: consider setup time skip of a previous failure
                as no longer failing
-- ensure --cache output is sorted
 
-1.0.dev
-----------------------------------------------
+- ensure --cache output is sorted
 
 - merged "--ff" (failedfirst) option to run all tests but 
   run the last-failed ones first. Thanks Jack Riches.
