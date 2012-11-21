@@ -7,16 +7,15 @@ def pytest_addoption(parser):
     group = parser.getgroup("general")
     group.addoption('--lf', action='store_true', dest="lf",
         help="rerun tests that failed at the last run")
-    group.addoption('--failedfirst', action='store_true', dest="failedfirst",
-        help="run tests that failed at the last run at the start of this run")
+    group.addoption('--ff', action='store_true', dest="failedfirst",
+        help="run tests that failed at the last run at the start of this run. "
+             "re-orders tests - may lead to repeated fixture setup/teardown")
     group.addoption('--cache', action='store_true', dest="showcache",
         help="show cache contents, don't perform collection or tests")
     group.addoption('--clearcache', action='store_true', dest="clearcache",
         help="remove all cache contents at start of test run.")
 
 def pytest_cmdline_main(config):
-    if config.option.failedfirst and not config.option.lf:
-        raise pytest.UsageError("--failedfirst must be used with --lf")
     if config.option.showcache:
         from _pytest.main import wrap_session
         return wrap_session(config, showcache)
@@ -117,13 +116,14 @@ class LFPlugin:
     """ Plugin which implements the --lf (run last-failing) option """
     def __init__(self, config):
         self.config = config
-        if config.getvalue("lf"):
+        self.active = config.getvalue("lf") or config.getvalue("failedfirst")
+        if self.active:
             self.lastfailed = config.cache.get("cache/lastfailed", set())
         else:
             self.lastfailed = set()
 
     def pytest_report_header(self):
-        if self.config.getvalue("lf"):
+        if self.active:
             if not self.lastfailed:
                 mode = "run all (no recorded failures)"
             else:
@@ -142,7 +142,7 @@ class LFPlugin:
                 self.lastfailed.discard(report.nodeid)
 
     def pytest_collection_modifyitems(self, session, config, items):
-        if self.config.getvalue("lf") and self.lastfailed:
+        if self.active and self.lastfailed:
             previously_failed = []
             previously_passed = []
             for item in items:
@@ -154,7 +154,7 @@ class LFPlugin:
                 items[:] = previously_failed + previously_passed
             else:
                 items[:] = previously_failed
-                config.hook.pytest_deselected(items=previously_failed)
+                config.hook.pytest_deselected(items=previously_passed)
 
     def pytest_sessionfinish(self, session):
         config = self.config

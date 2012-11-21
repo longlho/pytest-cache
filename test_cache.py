@@ -176,7 +176,7 @@ class TestLastFailed:
             "test_a.py*",
             "test_b.py*",
         ])
-        result = testdir.runpytest("--lf", "--failedfirst")
+        result = testdir.runpytest("--lf", "--ff")
         # Test order will be failing tests firs
         result.stdout.fnmatch_lines([
             "test_b.py*",
