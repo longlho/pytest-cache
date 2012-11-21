@@ -1,3 +1,8 @@
+
+- fix issue 4: consider setup time skip of a previous failure
+               as no longer failing
+- ensure --cache output is sorted
+
 0.9
 ----------------------------------------------
 
