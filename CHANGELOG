@@ -3,6 +3,12 @@
                as no longer failing
 - ensure --cache output is sorted
 
+1.0.dev
+----------------------------------------------
+
+- merged "--ff" (failedfirst) option to run all tests but 
+  run the last-failed ones first. Thanks Jack Riches.
+
 0.9
 ----------------------------------------------
 

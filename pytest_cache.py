@@ -1,7 +1,7 @@
 import py
 import pytest
 
-__version__ = '0.9'
+__version__ = '1.0dev'
 
 def pytest_addoption(parser):
     group = parser.getgroup("general")
