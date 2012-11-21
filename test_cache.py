@@ -161,7 +161,7 @@ class TestLastFailed:
             "*2 failed*",
         ])
 
-    def test_lastfailed_order(self, testdir):
+    def test_failedfirst_order(self, testdir):
         always_pass = testdir.tmpdir.join('test_a.py').write(py.code.Source("""
             def test_always_passes():
                 assert 1
