@@ -1,0 +1,10 @@
+ve/
+.idea
+.*\.egg-info
+build
+dist
+.*\.pyc
+\.tox
+.history
+.cache
+
