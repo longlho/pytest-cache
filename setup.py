@@ -1,6 +1,7 @@
 from setuptools import setup
+import os
 
-req_file = open('requirements.txt', 'r')
+req_file = open(os.path.join(os.getcwd(), 'requirements.txt'), 'r')
 lines = req_file.readlines()
 requirements = [l.strip().strip('\n') for l in lines if l.strip() and not l.strip().startswith('#')]
 

@@ -3,6 +3,7 @@ import pytest
 
 __version__ = '1.0dev2'
 
+
 def pytest_addoption(parser):
     group = parser.getgroup("general")
     group.addoption('--lf', action='store_true', dest="lf",
@@ -11,6 +12,7 @@ def pytest_addoption(parser):
         help="show cache contents, don't perform collection or tests")
     group.addoption('--clearcache', action='store_true', dest="clearcache",
         help="remove all cache contents at start of test run.")
+
 
 def pytest_cmdline_main(config):
     if config.option.showcache:
@@ -22,10 +24,12 @@ def pytest_configure(config):
     config.cache = cache = Cache(config)
     config.pluginmanager.register(LFPlugin(config), "lfplugin")
 
+
 def pytest_report_header(config):
     if config.option.verbose:
         relpath = py.path.local().bestrelpath(config.cache._cachedir)
         return "cachedir: %s" % config.cache._cachedir
+
 
 class Cache:
     def __init__(self, config):
@@ -216,6 +220,7 @@ def getrootdir(config, name):
     subdir = p.join(name)
     config.trace("root %s: %s" % (name, subdir))
     return subdir
+
 
 def getroot(args, inibasenames):
     args = [x for x in args if not str(x).startswith("-")]

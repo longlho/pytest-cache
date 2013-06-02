@@ -1,10 +1,10 @@
-ve/
+ve*/
 .idea
-.*\.egg-info
+*.egg-info
 build
 dist
-.*\.pyc
-\.tox
+*.pyc
+.tox
 .history
 .cache
-
+__pycache__

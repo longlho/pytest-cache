@@ -1,0 +1,13 @@
+language: python
+python:
+  - "2.7"
+  - "3.2"
+  - "3.3"
+  - "pypy"
+# command to install dependencies
+install:
+  - pip install -r requirements.txt
+  - pip install pytest-xdist pytest-pep8
+script:
+  - py.test --pep8 test_cache.py
+  - py.test --pep8 -n3 test_cache.py

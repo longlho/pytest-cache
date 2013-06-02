@@ -190,16 +190,12 @@ by adding the ``--clearcache`` option like this::
 
     py.test --clearcache
 
-This is recommended for invocations from Continous Integration
+This is recommended for invocations from Continuous Integration
 servers where isolation and correctness is more important
 than speed.
 
 Notes
 -------------
-
-repository: http://bitbucket.org/hpk42/pytest-cache
-
-Issues: repository: http://bitbucket.org/hpk42/pytest-cache/issues
 
 more info on py.test: http://pytest.org
 
